@@ -1,6 +1,11 @@
 <form method="POST" action="/submit" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
-    {{ form.name.label }} {{ form.name(size=20) }}
-    {{ form.file.label }} {{ form.file(size=20) }}
-    <input type="submit" value="Go">
+    {{ form.auto.label }} {{ form.auto(size=-1) }}
+    {{ form.year.label }} {{ form.year(size=-1) }}
+    {{ form.km_age.label }} {{ form.km_age(size=7) }}
+    {{ form.engine_power.label }} {{ form.engine_power(size=-1) }}
+    {{ form.body_type.label }} {{ form.body_type(size=-1) }}
+    {{ form.trans.label }} {{ form.trans(size=-1) }}
+    {{ form.owners_count.label }} {{ form.owners_count(size=-1) }}
+    <input type="submit" value="Предсказать">
 </form>

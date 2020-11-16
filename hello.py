@@ -70,9 +70,16 @@ def add_message():
     return jsonify(predict)
 
 
+
+
+
 from flask_wtf import FlaskForm
-from wtforms import StringField, FileField
-from wtforms.validators import DataRequired
+from wtforms import StringField, FileField, SelectField, TextField
+from wtforms.validators import DataRequired, Required
+import pickle
+# import xgboost as xgb
+# from xgboost.sklearn import XGBRegressor
+from sklearn.ensemble import RandomForestRegressor
 
 app.config.update(dict(
     SECRET_KEY="powerful secretkey",
@@ -80,76 +87,66 @@ app.config.update(dict(
 ))
 
 class MyForm(FlaskForm):
-    name = StringField('name', validators=[DataRequired()])
-    file = FileField()
+    
+    auto = SelectField('Модель:', choices=['Kia Rio I',
+       'Kia Rio I Рестайлинг', 'Kia Rio II', 'Kia Rio II Рестайлинг',
+       'Kia Rio III', 'Kia Rio III Рестайлинг', 'Kia Rio IV',
+       'Kia Rio IV X-Line', 'Kia Rio IV Рестайлинг'])
+
+    year = SelectField('Год выпуска:', choices=[2000, 2001, 2002, 2003, 2004, 2005,2006, 2007, 
+                 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020])
+    km_age = StringField('Пробег:', validators=[DataRequired()])
+    engine_power = SelectField('Мощность двигателя (л/с):', choices=[75, 82, 84, 95, 96, 97, 98, 100, 105, 107, 108, 109, 112, 123])
+
+    body_type = SelectField('Тип кузова:', choices=['седан', 'универсал 5 дв.', 'хэтчбек 5 дв.'])
+    trans = SelectField('Тип трансмисии:', choices=['автоматическая', 'механическая'])
+    owners_count = SelectField('Количество владельцев:', choices=['1 владелец', '2 владельца', '3 или более'])
+    # file = FileField()
 
 from werkzeug.utils import secure_filename
 import os
 
 @app.route('/submit', methods=('GET', 'POST'))
 def submit():
+
     form = MyForm()
     if form.validate_on_submit():
+        # создадим базовый фрейм с параметрами автомобиля
+        my_df = pd.DataFrame({'year': [0],
+                      'km_age': [0],
+                      'engine_power': [0],       
+                      'Kia Rio I': [0],
+                      'Kia Rio I Рестайлинг': [0],
+                      'Kia Rio II': [0],
+                      'Kia Rio II Рестайлинг': [0], 
+                      'Kia Rio III': [0], 
+                      'Kia Rio III Рестайлинг': [0],
+                      'Kia Rio IV': [0],
+                      'Kia Rio IV X-Line': [0],
+                      'Kia Rio IV Рестайлинг': [0],
+                      'седан': [0],
+                      'универсал 5 дв.': [0],
+                      'хэтчбек 5 дв.': [0],
+                      'автоматическая': [0],
+                      'механическая': [0],
+                      '1 владелец': [0],
+                      '2 владельца': [0],
+                      '3 или более': [0]
+                        })
 
-        f = form.file.data
-        filename =  form.name.data + '.csv'
-        # f.save(os.path.join(
-        #     filename
-        # ))
-
-        df = pd.read_csv(f, header=None)
-        print(df.head())
-
-        predict = knn.predict(df)
-
-        result = pd.DataFrame(predict)
-        result.to_csv(filename, index=False)
-
-        return send_file(filename,
-                    mimetype='text/csv',
-                    attachment_filename=filename,
-                    as_attachment=True)
-
-    return render_template('submit.html', form=form)
+        my_df.loc[0, 'year'] = int(form.year.data)
+        my_df.loc[0, 'km_age'] = int(form.km_age.data)
+        my_df.loc[0, 'engine_power'] = int(form.engine_power.data)
+        my_df.loc[0, form.auto.data] = 1
+        my_df.loc[0, form.body_type.data] = 1
+        my_df.loc[0, form.trans.data] = 1
+        my_df.loc[0, form.owners_count.data] = 1
 
 
-import os
-from flask import Flask, flash, request, redirect, url_for
-from werkzeug.utils import secure_filename
+        with open('/root/random_forest.pickle','rb') as modelFile:
+            model = pickle.load(modelFile)
 
-UPLOAD_FOLDER = ''
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+        prediction = int(model.predict(my_df)[0])
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@app.route('/upload', methods=['GET', 'POST'])
-def upload_file():
-    if request.method == 'POST':
-        # check if the post request has the file part
-        if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
-        file = request.files['file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename + 'uploaded')
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return 'file uploaded'
-            
-    return '''
-    <!doctype html>
-    <title>Upload new File</title>
-    <h1>Upload new File</h1>
-    <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
-      <input type=submit value=Upload>
-    </form>
-    '''
+   # return render_template('submit.html', form=form)
+    return 'Цена автомобиля: ' + str(prediction) + ' рублей'
