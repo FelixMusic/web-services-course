@@ -108,7 +108,6 @@ import os
 
 @app.route('/submit', methods=('GET', 'POST'))
 def submit():
-
     form = MyForm()
     if form.validate_on_submit():
         # создадим базовый фрейм с параметрами автомобиля
@@ -147,6 +146,6 @@ def submit():
             model = pickle.load(modelFile)
 
         prediction = int(model.predict(my_df)[0])
+        return 'Цена автомобиля: ' + str(prediction) + ' рублей'
 
-   # return render_template('submit.html', form=form)
-    return 'Цена автомобиля: ' + str(prediction) + ' рублей'
+    return render_template('submit.html', form=form)
